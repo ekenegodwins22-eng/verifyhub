@@ -11,8 +11,9 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [buying, setBuying] = useState(false);
+  const [searchService, setSearchService] = useState('');
 
-  // Get API URL - use window.location.origin in production
+  // Get API URL
   const API_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
     ? window.location.origin 
     : (import.meta.env.VITE_API_URL || 'http://localhost:5000');
@@ -43,6 +44,7 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
         setServices(response.data.services || []);
         setCountries(response.data.countries || []);
         setPricing(response.data.pricing || {});
+        
         if (response.data.services?.length > 0) {
           setSelectedService(response.data.services[0].id);
         }
@@ -64,6 +66,10 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
     if (!selectedService || !selectedCountry) return null;
     return pricing[selectedService]?.[selectedCountry];
   };
+
+  const filteredServices = services.filter(s => 
+    s.name.toLowerCase().includes(searchService.toLowerCase())
+  );
 
   const handleBuyNumber = async () => {
     if (!selectedService || !selectedCountry) {
@@ -143,21 +149,36 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
         {error && <div className="error-message">{error}</div>}
 
         <div className="form-section">
+          {/* Service Selection */}
           <div className="form-group">
             <label>Select Service</label>
-            <div className="service-grid">
-              {services.map((service) => (
+            <input
+              type="text"
+              placeholder="Search services..."
+              value={searchService}
+              onChange={(e) => setSearchService(e.target.value)}
+              className="search-input"
+            />
+            <div className="service-list">
+              {filteredServices.map((service) => (
                 <button
                   key={service.id}
-                  className={`service-card ${selectedService === service.id ? 'active' : ''}`}
+                  className={`service-item ${selectedService === service.id ? 'active' : ''}`}
                   onClick={() => setSelectedService(service.id)}
                 >
-                  {service.name}
+                  <span className="service-name">{service.name}</span>
+                  {selectedService === service.id && (
+                    <span className="checkmark">✓</span>
+                  )}
                 </button>
               ))}
             </div>
+            {filteredServices.length === 0 && (
+              <div className="no-results">No services found</div>
+            )}
           </div>
 
+          {/* Country Selection */}
           <div className="form-group">
             <label>Select Country</label>
             <select
@@ -165,18 +186,28 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
               onChange={(e) => setSelectedCountry(e.target.value)}
               className="country-select"
             >
+              <option value="">Choose a country...</option>
               {countries.map((country) => (
                 <option key={country.code} value={country.code}>
-                  {country.name}
+                  {country.name} ({country.code})
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Price Summary */}
           {currentPrice && (
             <div className="price-summary">
               <div className="price-row">
-                <span>Price:</span>
+                <span>SMSPool Price:</span>
+                <span className="price-small">${currentPrice.smsPoolPrice.toFixed(4)}</span>
+              </div>
+              <div className="price-row">
+                <span>Markup:</span>
+                <span className="price-small">{currentPrice.markup}x</span>
+              </div>
+              <div className="price-row" style={{ borderTop: '1px solid #ddd', paddingTop: '10px', marginTop: '10px' }}>
+                <span>Your Price:</span>
                 <span className="price">${currentPrice.userPrice.toFixed(2)}</span>
               </div>
               <div className="price-row">
@@ -193,6 +224,7 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
             </div>
           )}
 
+          {/* Buy Button */}
           <button
             className="buy-button"
             onClick={handleBuyNumber}
@@ -202,16 +234,23 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
           </button>
         </div>
 
+        {/* Info Section */}
         <div className="info-section">
           <h3>📌 How it works</h3>
-          <ul>
-            <li>Select the service you want to verify</li>
+          <ol>
+            <li>Search and select the service you want to verify</li>
             <li>Choose your preferred country</li>
+            <li>Review the price (SMSPool price × markup)</li>
             <li>Click "Buy Now" to get a phone number</li>
-            <li>Use the number to sign up</li>
+            <li>Use the number to sign up/verify</li>
             <li>SMS code will appear automatically in your Orders</li>
             <li>Copy and paste the code to complete verification</li>
-          </ul>
+          </ol>
+        </div>
+
+        {/* Services Count */}
+        <div className="services-info">
+          📱 {services.length} services available • 🌍 {countries.length} countries
         </div>
       </div>
     </div>
