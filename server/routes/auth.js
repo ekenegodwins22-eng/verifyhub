@@ -6,6 +6,66 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = express.Router();
 
 /**
+ * POST /api/auth/auto-login
+ * Auto-login using Telegram ID (simplified login)
+ */
+router.post('/auto-login', async (req, res) => {
+  try {
+    const { telegramId, username, firstName, lastName } = req.body;
+
+    if (!telegramId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing Telegram ID',
+      });
+    }
+
+    // Check if user exists
+    let user = db.getUser(telegramId);
+
+    if (user) {
+      // Update existing user with latest info
+      user = db.updateUser(user.id, {
+        username: username || user.username,
+        firstName: firstName || user.firstName,
+        lastName: lastName || user.lastName,
+      });
+    } else {
+      // Create new user
+      user = db.createUser({
+        telegramId: telegramId,
+        username: username || null,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        balance: 0,
+      });
+    }
+
+    // Generate JWT token
+    const token = generateJWT(user.id, user.telegramId);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        telegramId: user.telegramId,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        balance: user.balance,
+      },
+    });
+  } catch (error) {
+    console.error('Auto-login error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Auto-login failed',
+    });
+  }
+});
+
+/**
  * POST /api/auth/login
  * Verify Telegram WebApp auth and create/update user
  */
@@ -113,49 +173,6 @@ router.get('/me', authMiddleware, (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get user',
-    });
-  }
-});
-
-/**
- * POST /api/auth/test-login
- * Test login endpoint (for development)
- */
-router.post('/test-login', async (req, res) => {
-  try {
-    // Create or get test user
-    let user = db.getUser('123456789');
-
-    if (!user) {
-      user = db.createUser({
-        telegramId: '123456789',
-        username: 'testuser',
-        firstName: 'Test',
-        lastName: 'User',
-        balance: 10.00, // Give test user some balance
-      });
-    }
-
-    // Generate JWT token
-    const token = generateJWT(user.id, user.telegramId);
-
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        telegramId: user.telegramId,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        balance: user.balance,
-      },
-    });
-  } catch (error) {
-    console.error('Test login error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Test login failed',
     });
   }
 });

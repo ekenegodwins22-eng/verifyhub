@@ -5,77 +5,81 @@ import '../styles/LoginScreen.css';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 function LoginScreen({ onLogin }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Auto-login if Telegram WebApp is available with valid initData
-    const tg = window.Telegram?.WebApp;
-    if (tg && tg.initData) {
-      console.log('Telegram WebApp detected, attempting auto-login');
-      handleTelegramLogin(tg.initData);
-    } else {
-      console.log('Telegram WebApp not available or no initData');
-    }
+    // Auto-login on component mount
+    autoLogin();
   }, []);
 
-  const handleTelegramLogin = async (initData) => {
-    setLoading(true);
-    setError(null);
-
+  const autoLogin = async () => {
     try {
-      console.log('Attempting Telegram login with initData');
-      const response = await axios.post(`${API_URL}/api/auth/login`, {
-        initData,
+      setLoading(true);
+      setError(null);
+
+      // Get Telegram WebApp instance
+      const tg = window.Telegram?.WebApp;
+      
+      if (!tg) {
+        console.error('Telegram WebApp not available');
+        setError('Please open this app from Telegram');
+        setLoading(false);
+        return;
+      }
+
+      // Get user data from Telegram
+      const user = tg.initDataUnsafe?.user;
+      
+      if (!user || !user.id) {
+        console.error('No Telegram user data available');
+        setError('Could not get Telegram user data');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Telegram user:', user);
+
+      // Send Telegram ID to backend for auto-login
+      const response = await axios.post(`${API_URL}/api/auth/auto-login`, {
+        telegramId: user.id,
+        username: user.username || null,
+        firstName: user.first_name || null,
+        lastName: user.last_name || null,
       });
 
       if (response.data.success) {
-        console.log('Telegram login successful');
+        console.log('Auto-login successful');
         onLogin(response.data.token, response.data.user);
       } else {
-        console.error('Telegram login failed:', response.data.error);
+        console.error('Auto-login failed:', response.data.error);
         setError(response.data.error || 'Login failed');
+        setLoading(false);
       }
     } catch (err) {
-      console.error('Telegram login error:', err);
-      setError(err.response?.data?.error || 'Failed to login with Telegram');
-    } finally {
+      console.error('Auto-login error:', err);
+      setError(err.response?.data?.error || 'Failed to login');
       setLoading(false);
     }
   };
 
-  const handleTestLogin = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      console.log('Attempting test login');
-      const response = await axios.post(`${API_URL}/api/auth/test-login`);
-
-      if (response.data.success) {
-        console.log('Test login successful');
-        onLogin(response.data.token, response.data.user);
-      } else {
-        console.error('Test login failed:', response.data.error);
-        setError(response.data.error || 'Test login failed');
-      }
-    } catch (err) {
-      console.error('Test login error:', err);
-      setError(err.response?.data?.error || 'Test login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLoginClick = () => {
-    const tg = window.Telegram?.WebApp;
-    if (tg && tg.initData) {
-      handleTelegramLogin(tg.initData);
-    } else {
-      console.warn('Telegram WebApp not available');
-      setError('Telegram WebApp not available. Use Test Login instead.');
-    }
-  };
+  if (loading) {
+    return (
+      <div className="login-screen">
+        <div className="login-container">
+          <div className="logo-section">
+            <div className="logo">🔐</div>
+            <h1>VerifyHub</h1>
+            <p className="tagline">Instant SMS Verification</p>
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '40px' }}>
+            <div className="spinner" style={{ margin: '0 auto 20px' }}></div>
+            <p>Logging you in...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="login-screen">
@@ -109,22 +113,10 @@ function LoginScreen({ onLogin }) {
 
         <button
           className="login-button"
-          onClick={handleLoginClick}
+          onClick={autoLogin}
           disabled={loading}
         >
-          {loading ? 'Logging in...' : 'Login with Telegram'}
-        </button>
-
-        <button
-          className="login-button"
-          onClick={handleTestLogin}
-          disabled={loading}
-          style={{
-            marginTop: '12px',
-            backgroundColor: '#10B981',
-          }}
-        >
-          {loading ? 'Testing...' : 'Test Login (Development)'}
+          {loading ? 'Logging in...' : 'Try Again'}
         </button>
 
         <p className="info-text">
