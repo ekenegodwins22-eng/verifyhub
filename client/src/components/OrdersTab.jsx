@@ -2,20 +2,24 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/OrdersTab.css';
 
-function OrdersTab({ user, token, apiUrl }) {
+function OrdersTab({ user, token }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pollingOrders, setPollingOrders] = useState(new Set());
 
-  useEffect(() => {
-    console.log('OrdersTab mounted, API URL:', apiUrl);
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 5000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
-  }, [apiUrl]);
+  // Get API URL - use window.location.origin in production
+  const API_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+    ? window.location.origin 
+    : (import.meta.env.VITE_API_URL || 'http://localhost:5000');
 
-  // Auto-poll for SMS codes
+  useEffect(() => {
+    console.log('OrdersTab: Fetching orders from', API_URL);
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     orders.forEach((order) => {
       if (order.status === 'waiting_sms' && !pollingOrders.has(order.id)) {
@@ -26,23 +30,27 @@ function OrdersTab({ user, token, apiUrl }) {
 
   const fetchOrders = async () => {
     try {
-      console.log('Fetching orders from:', `${apiUrl}/api/orders`);
-      const response = await axios.get(`${apiUrl}/api/orders`, {
+      const url = `${API_URL}/api/orders`;
+      console.log('OrdersTab: Calling', url);
+
+      const response = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
         timeout: 10000,
       });
 
-      console.log('Orders response:', response.data);
+      console.log('OrdersTab: Response', response.data);
 
       if (response.data.success) {
-        setOrders(response.data.orders);
+        setOrders(response.data.orders || []);
         setError(null);
+      } else {
+        setError(response.data.error || 'Failed to load orders');
       }
     } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError('Failed to load orders: ' + (err.response?.data?.error || err.message));
+      console.error('OrdersTab Error:', err);
+      setError(err.message || 'Failed to load orders');
     } finally {
       setLoading(false);
     }
@@ -52,7 +60,7 @@ function OrdersTab({ user, token, apiUrl }) {
     setPollingOrders((prev) => new Set(prev).add(orderId));
 
     try {
-      const response = await axios.get(`${apiUrl}/api/orders/${orderId}/sms`, {
+      const response = await axios.get(`${API_URL}/api/orders/${orderId}/sms`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -60,7 +68,6 @@ function OrdersTab({ user, token, apiUrl }) {
       });
 
       if (response.data.success && response.data.code) {
-        // SMS received, update orders
         setOrders((prev) =>
           prev.map((order) =>
             order.id === orderId
@@ -74,7 +81,6 @@ function OrdersTab({ user, token, apiUrl }) {
           return newSet;
         });
       } else if (response.data.status === 'expired') {
-        // Order expired
         setOrders((prev) =>
           prev.map((order) =>
             order.id === orderId ? { ...order, status: 'expired' } : order
@@ -86,9 +92,8 @@ function OrdersTab({ user, token, apiUrl }) {
           return newSet;
         });
       }
-      // If still waiting, polling will continue
     } catch (err) {
-      console.error('Error polling SMS:', err);
+      console.error('OrdersTab Poll Error:', err);
     }
   };
 

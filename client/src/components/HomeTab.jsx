@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/HomeTab.css';
 
-function HomeTab({ user, token, onBalanceUpdate, apiUrl }) {
+function HomeTab({ user, token, onBalanceUpdate }) {
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [depositLoading, setDepositLoading] = useState(false);

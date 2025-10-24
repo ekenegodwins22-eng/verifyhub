@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/BuyTab.css';
 
-function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
+function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
   const [services, setServices] = useState([]);
   const [countries, setCountries] = useState([]);
   const [pricing, setPricing] = useState({});
@@ -12,36 +12,49 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
   const [error, setError] = useState(null);
   const [buying, setBuying] = useState(false);
 
+  // Get API URL - use window.location.origin in production
+  const API_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+    ? window.location.origin 
+    : (import.meta.env.VITE_API_URL || 'http://localhost:5000');
+
   useEffect(() => {
-    console.log('BuyTab mounted, API URL:', apiUrl);
+    console.log('BuyTab: Fetching services from', API_URL);
     fetchServices();
-  }, [apiUrl]);
+  }, []);
 
   const fetchServices = async () => {
     try {
-      console.log('Fetching services from:', `${apiUrl}/api/services`);
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(`${apiUrl}/api/services`, {
+      const url = `${API_URL}/api/services`;
+      console.log('BuyTab: Calling', url);
+
+      const response = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
         timeout: 10000,
       });
 
-      console.log('Services response:', response.data);
+      console.log('BuyTab: Response', response.data);
 
       if (response.data.success) {
-        setServices(response.data.services);
-        setCountries(response.data.countries);
-        setPricing(response.data.pricing);
-        setSelectedService(response.data.services[0]?.id);
-        setSelectedCountry(response.data.countries[0]?.code);
+        setServices(response.data.services || []);
+        setCountries(response.data.countries || []);
+        setPricing(response.data.pricing || {});
+        if (response.data.services?.length > 0) {
+          setSelectedService(response.data.services[0].id);
+        }
+        if (response.data.countries?.length > 0) {
+          setSelectedCountry(response.data.countries[0].code);
+        }
+      } else {
+        setError(response.data.error || 'Failed to load services');
       }
     } catch (err) {
-      console.error('Error fetching services:', err);
-      setError('Failed to load services: ' + (err.response?.data?.error || err.message));
+      console.error('BuyTab Error:', err);
+      setError(err.message || 'Failed to load services');
     } finally {
       setLoading(false);
     }
@@ -74,7 +87,7 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
 
     try {
       const response = await axios.post(
-        `${apiUrl}/api/orders/buy`,
+        `${API_URL}/api/orders/buy`,
         {
           service: selectedService,
           country: selectedCountry,
@@ -89,7 +102,6 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
 
       if (response.data.success) {
         onBalanceUpdate(response.data.newBalance);
-        // Show success and redirect to orders
         alert(`✅ Number purchased!\n\n📱 ${response.data.order.phoneNumber}\n\nCheck your orders tab for SMS code.`);
         onOrderCreated();
       } else {
@@ -105,6 +117,20 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
 
   if (loading) {
     return <div className="buy-tab loading">Loading services...</div>;
+  }
+
+  if (error && services.length === 0) {
+    return (
+      <div className="buy-tab">
+        <div className="buy-container">
+          <h2>Buy SMS Number</h2>
+          <div className="error-message">{error}</div>
+          <button onClick={fetchServices} className="btn-primary">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const currentPrice = getCurrentPrice();
@@ -135,7 +161,7 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
           <div className="form-group">
             <label>Select Country</label>
             <select
-              value={selectedCountry}
+              value={selectedCountry || ''}
               onChange={(e) => setSelectedCountry(e.target.value)}
               className="country-select"
             >

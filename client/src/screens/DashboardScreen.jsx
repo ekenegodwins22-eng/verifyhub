@@ -4,16 +4,6 @@ import BuyTab from '../components/BuyTab';
 import OrdersTab from '../components/OrdersTab';
 import '../styles/DashboardScreen.css';
 
-// Get API URL
-const getAPIUrl = () => {
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return window.location.origin;
-  }
-  return import.meta.env.VITE_API_URL || 'http://localhost:5000';
-};
-
-const API_URL = getAPIUrl();
-
 function DashboardScreen({ user, token, onLogout, onBalanceUpdate }) {
   const [activeTab, setActiveTab] = useState('home');
 
@@ -59,7 +49,6 @@ function DashboardScreen({ user, token, onLogout, onBalanceUpdate }) {
               user={user} 
               token={token}
               onBalanceUpdate={onBalanceUpdate}
-              apiUrl={API_URL}
             />
           )}
           {activeTab === 'buy' && (
@@ -68,14 +57,12 @@ function DashboardScreen({ user, token, onLogout, onBalanceUpdate }) {
               token={token}
               onBalanceUpdate={onBalanceUpdate}
               onOrderCreated={() => setActiveTab('orders')}
-              apiUrl={API_URL}
             />
           )}
           {activeTab === 'orders' && (
             <OrdersTab 
               user={user} 
               token={token}
-              apiUrl={API_URL}
             />
           )}
         </div>
