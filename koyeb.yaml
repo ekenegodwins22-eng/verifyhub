@@ -1,0 +1,37 @@
+# Koyeb Deployment Configuration for VerifyHub
+# This file helps Koyeb understand how to build and run your app
+
+version: 1
+
+services:
+  - name: verifyhub
+    github:
+      repo: yourusername/verifyhub  # Update this
+      branch: main
+    build:
+      buildpack: node
+    run:
+      command: npm start
+    ports:
+      - port: 5000
+        protocol: http
+    env:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "5000"
+      # Add other environment variables in Koyeb dashboard
+      # - key: TELEGRAM_BOT_TOKEN
+      #   value: your_token_here
+      # - key: SMSPOOL_API_KEY
+      #   value: your_key_here
+      # - key: JWT_SECRET
+      #   value: your_secret_here
+
+# Health check configuration
+health_checks:
+  - path: /health
+    port: 5000
+    initial_delay: 30
+    period: 10
+

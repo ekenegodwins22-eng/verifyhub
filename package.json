@@ -1,0 +1,40 @@
+{
+  "name": "verifyhub",
+  "version": "1.0.0",
+  "description": "VerifyHub - SMS Verification Mini App for Telegram",
+  "main": "server/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "node server/index.js",
+    "db:push": "drizzle-kit push:sqlite",
+    "db:studio": "drizzle-kit studio",
+    "db:generate": "drizzle-kit generate:sqlite"
+  },
+  "keywords": [
+    "telegram",
+    "mini-app",
+    "sms",
+    "verification"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.1.2",
+    "crypto": "^1.0.1",
+    "axios": "^1.6.2",
+    "drizzle-orm": "^0.29.1",
+    "better-sqlite3": "^9.2.2",
+    "drizzle-kit": "^0.20.14"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
