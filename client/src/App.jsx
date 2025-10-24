@@ -16,7 +16,7 @@ const getAPIUrl = () => {
 
 const API_URL = getAPIUrl();
 
-console.log('API URL:', API_URL);
+console.log('🌐 API URL:', API_URL);
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -27,53 +27,60 @@ function App() {
 
   // Initialize Telegram WebApp
   useEffect(() => {
-    console.log('Initializing Telegram WebApp...');
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-      
-      // Set color scheme
-      tg.setHeaderColor('#2563EB');
-      tg.setBackgroundColor('#ffffff');
-      
-      console.log('Telegram WebApp initialized');
-      console.log('User data:', tg.initDataUnsafe?.user);
-    } else {
-      console.warn('Telegram WebApp not available');
+    console.log('📱 Initializing Telegram WebApp...');
+    try {
+      if (window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        
+        // Set color scheme
+        tg.setHeaderColor('#2563EB');
+        tg.setBackgroundColor('#ffffff');
+        
+        console.log('✅ Telegram WebApp initialized');
+        console.log('👤 User data:', tg.initDataUnsafe?.user);
+      } else {
+        console.warn('⚠️ Telegram WebApp not available');
+        setError('Please open this app from Telegram');
+      }
+    } catch (err) {
+      console.error('❌ Telegram initialization error:', err);
     }
   }, []);
 
   // Check authentication on mount
   useEffect(() => {
-    console.log('Checking authentication, token:', !!token);
+    console.log('🔐 Checking authentication...');
     if (token) {
       verifyToken();
     } else {
+      console.log('📝 No token found, showing login screen');
       setLoading(false);
     }
   }, [token]);
 
   const verifyToken = async () => {
     try {
-      console.log('Verifying token...');
+      console.log('🔍 Verifying token...');
       const response = await axios.get(`${API_URL}/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        timeout: 10000,
       });
 
       if (response.data.success) {
-        console.log('Token verified, user:', response.data.user);
+        console.log('✅ Token verified, user:', response.data.user);
         setUser(response.data.user);
         setIsAuthenticated(true);
       } else {
-        console.warn('Token verification failed');
+        console.warn('⚠️ Token verification failed');
         localStorage.removeItem('token');
         setToken(null);
       }
     } catch (error) {
-      console.error('Token verification error:', error);
+      console.error('❌ Token verification error:', error);
       localStorage.removeItem('token');
       setToken(null);
     } finally {
@@ -82,7 +89,7 @@ function App() {
   };
 
   const handleLogin = (newToken, userData) => {
-    console.log('Login successful, user:', userData);
+    console.log('✅ Login successful, user:', userData);
     localStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(userData);
@@ -91,7 +98,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    console.log('Logging out...');
+    console.log('🚪 Logging out...');
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
@@ -103,7 +110,7 @@ function App() {
       <div className="app loading-screen">
         <div className="spinner"></div>
         <p>Loading VerifyHub...</p>
-        {error && <p style={{ color: 'red', fontSize: '12px' }}>{error}</p>}
+        {error && <p style={{ color: 'red', fontSize: '12px', marginTop: '10px' }}>{error}</p>}
       </div>
     );
   }
@@ -118,7 +125,7 @@ function App() {
           onBalanceUpdate={(newBalance) => setUser({ ...user, balance: newBalance })}
         />
       ) : (
-        <LoginScreen onLogin={handleLogin} apiUrl={API_URL} />
+        <LoginScreen onLogin={handleLogin} />
       )}
     </div>
   );

@@ -2,51 +2,60 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/LoginScreen.css';
 
-function LoginScreen({ onLogin, apiUrl }) {
+function LoginScreen({ onLogin }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
-    console.log('LoginScreen mounted, API URL:', apiUrl);
+    console.log('📝 LoginScreen mounted');
     // Auto-login on component mount
     autoLogin();
-  }, [apiUrl]);
+  }, []);
 
   const autoLogin = async () => {
     try {
       setLoading(true);
       setError(null);
+      setRetrying(false);
 
-      console.log('Starting auto-login...');
+      console.log('🔐 Starting auto-login...');
 
       // Get Telegram WebApp instance
       const tg = window.Telegram?.WebApp;
       
       if (!tg) {
-        console.error('Telegram WebApp not available');
+        console.error('❌ Telegram WebApp not available');
         setError('Please open this app from Telegram');
         setLoading(false);
         return;
       }
 
-      console.log('Telegram WebApp available');
+      console.log('✅ Telegram WebApp available');
 
       // Get user data from Telegram
       const user = tg.initDataUnsafe?.user;
       
       if (!user || !user.id) {
-        console.error('No Telegram user data available');
-        console.log('initDataUnsafe:', tg.initDataUnsafe);
-        setError('Could not get Telegram user data');
+        console.error('❌ No Telegram user data available');
+        console.log('📊 initDataUnsafe:', tg.initDataUnsafe);
+        setError('Could not get Telegram user data. Please try again.');
         setLoading(false);
         return;
       }
 
-      console.log('Telegram user:', user);
+      console.log('👤 Telegram user:', user);
+
+      // Detect API URL
+      const API_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+        ? window.location.origin 
+        : (import.meta.env.VITE_API_URL || 'http://localhost:5000');
+
+      console.log('🌐 API URL:', API_URL);
 
       // Send Telegram ID to backend for auto-login
-      const loginUrl = `${apiUrl}/api/auth/auto-login`;
-      console.log('Calling login endpoint:', loginUrl);
+      const loginUrl = `${API_URL}/api/auth/auto-login`;
+      console.log('📤 Calling login endpoint:', loginUrl);
 
       const response = await axios.post(loginUrl, {
         telegramId: user.id,
@@ -54,25 +63,30 @@ function LoginScreen({ onLogin, apiUrl }) {
         firstName: user.first_name || null,
         lastName: user.last_name || null,
       }, {
-        timeout: 10000, // 10 second timeout
+        timeout: 10000,
       });
 
-      console.log('Login response:', response.data);
+      console.log('📥 Login response:', response.data);
 
       if (response.data.success) {
-        console.log('Auto-login successful');
+        console.log('✅ Auto-login successful');
         onLogin(response.data.token, response.data.user);
       } else {
-        console.error('Auto-login failed:', response.data.error);
+        console.error('❌ Auto-login failed:', response.data.error);
         setError(response.data.error || 'Login failed');
         setLoading(false);
       }
     } catch (err) {
-      console.error('Auto-login error:', err);
+      console.error('❌ Auto-login error:', err);
       const errorMsg = err.response?.data?.error || err.message || 'Failed to login';
       setError(errorMsg);
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setRetrying(true);
+    autoLogin();
   };
 
   if (loading) {
@@ -123,16 +137,16 @@ function LoginScreen({ onLogin, apiUrl }) {
 
         {error && (
           <div className="error-message">
-            <strong>Login Error:</strong> {error}
+            <strong>⚠️ Error:</strong> {error}
           </div>
         )}
 
         <button
           className="login-button"
-          onClick={autoLogin}
-          disabled={loading}
+          onClick={handleRetry}
+          disabled={retrying}
         >
-          {loading ? 'Logging in...' : 'Try Again'}
+          {retrying ? 'Retrying...' : 'Try Again'}
         </button>
 
         <p className="info-text">
