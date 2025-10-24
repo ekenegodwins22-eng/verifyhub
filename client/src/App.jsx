@@ -4,16 +4,30 @@ import LoginScreen from './screens/LoginScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import './App.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Detect API URL based on environment
+const getAPIUrl = () => {
+  // In production, use the same domain as the app
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return window.location.origin;
+  }
+  // In development, use environment variable or localhost
+  return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+};
+
+const API_URL = getAPIUrl();
+
+console.log('API URL:', API_URL);
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [error, setError] = useState(null);
 
   // Initialize Telegram WebApp
   useEffect(() => {
+    console.log('Initializing Telegram WebApp...');
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
       tg.ready();
@@ -22,11 +36,17 @@ function App() {
       // Set color scheme
       tg.setHeaderColor('#2563EB');
       tg.setBackgroundColor('#ffffff');
+      
+      console.log('Telegram WebApp initialized');
+      console.log('User data:', tg.initDataUnsafe?.user);
+    } else {
+      console.warn('Telegram WebApp not available');
     }
   }, []);
 
   // Check authentication on mount
   useEffect(() => {
+    console.log('Checking authentication, token:', !!token);
     if (token) {
       verifyToken();
     } else {
@@ -36,6 +56,7 @@ function App() {
 
   const verifyToken = async () => {
     try {
+      console.log('Verifying token...');
       const response = await axios.get(`${API_URL}/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -43,14 +64,16 @@ function App() {
       });
 
       if (response.data.success) {
+        console.log('Token verified, user:', response.data.user);
         setUser(response.data.user);
         setIsAuthenticated(true);
       } else {
+        console.warn('Token verification failed');
         localStorage.removeItem('token');
         setToken(null);
       }
     } catch (error) {
-      console.error('Token verification failed:', error);
+      console.error('Token verification error:', error);
       localStorage.removeItem('token');
       setToken(null);
     } finally {
@@ -59,13 +82,16 @@ function App() {
   };
 
   const handleLogin = (newToken, userData) => {
+    console.log('Login successful, user:', userData);
     localStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(userData);
     setIsAuthenticated(true);
+    setError(null);
   };
 
   const handleLogout = () => {
+    console.log('Logging out...');
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
@@ -77,6 +103,7 @@ function App() {
       <div className="app loading-screen">
         <div className="spinner"></div>
         <p>Loading VerifyHub...</p>
+        {error && <p style={{ color: 'red', fontSize: '12px' }}>{error}</p>}
       </div>
     );
   }
@@ -91,7 +118,7 @@ function App() {
           onBalanceUpdate={(newBalance) => setUser({ ...user, balance: newBalance })}
         />
       ) : (
-        <LoginScreen onLogin={handleLogin} />
+        <LoginScreen onLogin={handleLogin} apiUrl={API_URL} />
       )}
     </div>
   );

@@ -2,21 +2,22 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/LoginScreen.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-function LoginScreen({ onLogin }) {
+function LoginScreen({ onLogin, apiUrl }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    console.log('LoginScreen mounted, API URL:', apiUrl);
     // Auto-login on component mount
     autoLogin();
-  }, []);
+  }, [apiUrl]);
 
   const autoLogin = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      console.log('Starting auto-login...');
 
       // Get Telegram WebApp instance
       const tg = window.Telegram?.WebApp;
@@ -28,11 +29,14 @@ function LoginScreen({ onLogin }) {
         return;
       }
 
+      console.log('Telegram WebApp available');
+
       // Get user data from Telegram
       const user = tg.initDataUnsafe?.user;
       
       if (!user || !user.id) {
         console.error('No Telegram user data available');
+        console.log('initDataUnsafe:', tg.initDataUnsafe);
         setError('Could not get Telegram user data');
         setLoading(false);
         return;
@@ -41,12 +45,19 @@ function LoginScreen({ onLogin }) {
       console.log('Telegram user:', user);
 
       // Send Telegram ID to backend for auto-login
-      const response = await axios.post(`${API_URL}/api/auth/auto-login`, {
+      const loginUrl = `${apiUrl}/api/auth/auto-login`;
+      console.log('Calling login endpoint:', loginUrl);
+
+      const response = await axios.post(loginUrl, {
         telegramId: user.id,
         username: user.username || null,
         firstName: user.first_name || null,
         lastName: user.last_name || null,
+      }, {
+        timeout: 10000, // 10 second timeout
       });
+
+      console.log('Login response:', response.data);
 
       if (response.data.success) {
         console.log('Auto-login successful');
@@ -58,7 +69,8 @@ function LoginScreen({ onLogin }) {
       }
     } catch (err) {
       console.error('Auto-login error:', err);
-      setError(err.response?.data?.error || 'Failed to login');
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to login';
+      setError(errorMsg);
       setLoading(false);
     }
   };
@@ -109,7 +121,11 @@ function LoginScreen({ onLogin }) {
           </div>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">
+            <strong>Login Error:</strong> {error}
+          </div>
+        )}
 
         <button
           className="login-button"
