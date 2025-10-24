@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/HomeTab.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-function HomeTab({ user, token, onBalanceUpdate }) {
+function HomeTab({ user, token, onBalanceUpdate, apiUrl }) {
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [depositLoading, setDepositLoading] = useState(false);

@@ -2,19 +2,18 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/OrdersTab.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-function OrdersTab({ user, token }) {
+function OrdersTab({ user, token, apiUrl }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pollingOrders, setPollingOrders] = useState(new Set());
 
   useEffect(() => {
+    console.log('OrdersTab mounted, API URL:', apiUrl);
     fetchOrders();
     const interval = setInterval(fetchOrders, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [apiUrl]);
 
   // Auto-poll for SMS codes
   useEffect(() => {
@@ -27,18 +26,23 @@ function OrdersTab({ user, token }) {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/orders`, {
+      console.log('Fetching orders from:', `${apiUrl}/api/orders`);
+      const response = await axios.get(`${apiUrl}/api/orders`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        timeout: 10000,
       });
+
+      console.log('Orders response:', response.data);
 
       if (response.data.success) {
         setOrders(response.data.orders);
+        setError(null);
       }
     } catch (err) {
       console.error('Error fetching orders:', err);
-      setError('Failed to load orders');
+      setError('Failed to load orders: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -48,10 +52,11 @@ function OrdersTab({ user, token }) {
     setPollingOrders((prev) => new Set(prev).add(orderId));
 
     try {
-      const response = await axios.get(`${API_URL}/api/orders/${orderId}/sms`, {
+      const response = await axios.get(`${apiUrl}/api/orders/${orderId}/sms`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        timeout: 10000,
       });
 
       if (response.data.success && response.data.code) {

@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/BuyTab.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
+function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
   const [services, setServices] = useState([]);
   const [countries, setCountries] = useState([]);
   const [pricing, setPricing] = useState({});
@@ -15,16 +13,24 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
   const [buying, setBuying] = useState(false);
 
   useEffect(() => {
+    console.log('BuyTab mounted, API URL:', apiUrl);
     fetchServices();
-  }, []);
+  }, [apiUrl]);
 
   const fetchServices = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/services`, {
+      console.log('Fetching services from:', `${apiUrl}/api/services`);
+      setLoading(true);
+      setError(null);
+
+      const response = await axios.get(`${apiUrl}/api/services`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        timeout: 10000,
       });
+
+      console.log('Services response:', response.data);
 
       if (response.data.success) {
         setServices(response.data.services);
@@ -35,7 +41,7 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
       }
     } catch (err) {
       console.error('Error fetching services:', err);
-      setError('Failed to load services');
+      setError('Failed to load services: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -68,7 +74,7 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
 
     try {
       const response = await axios.post(
-        `${API_URL}/api/orders/buy`,
+        `${apiUrl}/api/orders/buy`,
         {
           service: selectedService,
           country: selectedCountry,
@@ -77,6 +83,7 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          timeout: 10000,
         }
       );
 
