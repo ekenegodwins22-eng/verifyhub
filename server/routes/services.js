@@ -1,7 +1,5 @@
 import express from 'express';
 import { getServices, calculateUserPrice } from '../utils/smspool.js';
-import db from '../db/index.js';
-import { services } from '../db/schema.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();

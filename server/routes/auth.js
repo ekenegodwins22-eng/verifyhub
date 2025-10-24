@@ -1,8 +1,7 @@
 import express from 'express';
 import { verifyTelegramAuth, generateJWT } from '../utils/telegram.js';
 import db from '../db/index.js';
-import { users } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -32,47 +31,24 @@ router.post('/login', async (req, res) => {
     }
 
     // Check if user exists in database
-    const existingUser = db
-      .select()
-      .from(users)
-      .where(eq(users.telegramId, userData.id.toString()))
-      .all();
+    let user = db.getUser(userData.id);
 
-    let user;
-
-    if (existingUser.length > 0) {
+    if (user) {
       // Update existing user
-      user = existingUser[0];
-      db.update(users)
-        .set({
-          username: userData.username || user.username,
-          firstName: userData.first_name || user.firstName,
-          lastName: userData.last_name || user.lastName,
-          updatedAt: Math.floor(Date.now() / 1000),
-        })
-        .where(eq(users.id, user.id))
-        .run();
+      user = db.updateUser(user.id, {
+        username: userData.username || user.username,
+        firstName: userData.first_name || user.firstName,
+        lastName: userData.last_name || user.lastName,
+      });
     } else {
       // Create new user
-      const result = db
-        .insert(users)
-        .values({
-          telegramId: userData.id.toString(),
-          username: userData.username,
-          firstName: userData.first_name,
-          lastName: userData.last_name,
-          balance: 0,
-          createdAt: Math.floor(Date.now() / 1000),
-          updatedAt: Math.floor(Date.now() / 1000),
-        })
-        .run();
-
-      // Fetch the created user
-      user = db
-        .select()
-        .from(users)
-        .where(eq(users.telegramId, userData.id.toString()))
-        .all()[0];
+      user = db.createUser({
+        telegramId: userData.id,
+        username: userData.username || null,
+        firstName: userData.first_name || null,
+        lastName: userData.last_name || null,
+        balance: 0,
+      });
     }
 
     // Generate JWT token
@@ -103,7 +79,7 @@ router.post('/login', async (req, res) => {
  * GET /api/auth/me
  * Get current user info
  */
-router.get('/me', (req, res) => {
+router.get('/me', authMiddleware, (req, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -112,11 +88,7 @@ router.get('/me', (req, res) => {
       });
     }
 
-    const user = db
-      .select()
-      .from(users)
-      .where(eq(users.id, req.user.userId))
-      .all()[0];
+    const user = db.getUser(req.user.telegramId);
 
     if (!user) {
       return res.status(404).json({

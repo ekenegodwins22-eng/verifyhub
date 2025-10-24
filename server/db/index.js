@@ -49,6 +49,7 @@ loadDatabase();
 
 // Simple database wrapper
 export const db = {
+  database, // Expose database for direct access
   // Users
   getUser: (telegramId) => {
     return database.users.find(u => u.telegramId === telegramId.toString());
@@ -127,5 +128,7 @@ export const db = {
   }
 };
 
+// Also export database directly for compatibility
+export { database };
 export default db;
 
