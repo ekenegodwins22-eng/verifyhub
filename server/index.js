@@ -19,6 +19,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API = 'https://api.telegram.org/bot';
+const MINI_APP_URL = process.env.MINI_APP_URL || 'https://your-app-url.koyeb.app';
 
 // Middleware
 app.use(cors());
@@ -40,29 +41,58 @@ app.post('/telegram/webhook', async (req, res) => {
       const chatId = message.chat.id;
       const firstName = message.from?.first_name || 'User';
 
-      const welcomeMessage = `👋 Welcome to VerifyHub!
+      const welcomeMessage = `🎉 Welcome to VerifyHub!
 
-VerifyHub is your instant SMS verification service. Get SMS codes for any service in seconds!
+Your instant SMS verification solution. Get verification codes for any service in seconds!
 
-✨ Features:
-• 📱 150+ countries
-• 🚀 Instant SMS delivery
-• 💰 Affordable pricing
-• 🔒 Secure & private
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Click the button below to open the app and start buying SMS numbers!`;
+✨ **What is VerifyHub?**
+VerifyHub is a premium SMS verification service that provides instant phone numbers and SMS codes for account verification across 150+ countries and services.
+
+🌟 **Key Features:**
+✅ Instant SMS delivery (30 seconds - 5 minutes)
+✅ 150+ countries worldwide
+✅ 10+ popular services (Telegram, Google, WhatsApp, Discord, etc.)
+✅ Affordable pricing starting from $0.50
+✅ Secure & private - no data stored
+✅ 24/7 support
+
+💰 **How It Works:**
+1. Deposit money to your account
+2. Select a service and country
+3. Get a phone number instantly
+4. Use it to sign up/verify
+5. Receive SMS code automatically
+6. Copy & paste to complete verification
+
+🚀 **Get Started:**
+Click the button below to open the app and start buying SMS numbers!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
       await axios.post(`${TELEGRAM_API}${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         chat_id: chatId,
         text: welcomeMessage,
+        parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
             [
               {
-                text: '🚀 OPEN APP',
+                text: '🚀 OPEN VerifyHub APP',
                 web_app: {
-                  url: `${process.env.MINI_APP_URL || 'https://your-app-url.koyeb.app'}`,
+                  url: MINI_APP_URL,
                 },
+              },
+            ],
+            [
+              {
+                text: '❓ Help',
+                callback_data: 'help',
+              },
+              {
+                text: '💬 Support',
+                url: 'https://t.me/your_support_bot',
               },
             ],
           ],
@@ -110,7 +140,7 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 VerifyHub server running on port ${PORT}`);
-  console.log(`📱 Mini App: http://localhost:${PORT}`);
+  console.log(`📱 Mini App URL: ${MINI_APP_URL}`);
   console.log(`🔗 API: http://localhost:${PORT}/api`);
   console.log(`📞 Telegram Bot Token: ${TELEGRAM_BOT_TOKEN ? '✓ Set' : '✗ Not set'}`);
 });
