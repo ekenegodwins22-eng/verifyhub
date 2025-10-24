@@ -117,5 +117,48 @@ router.get('/me', authMiddleware, (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/test-login
+ * Test login endpoint (for development)
+ */
+router.post('/test-login', async (req, res) => {
+  try {
+    // Create or get test user
+    let user = db.getUser('123456789');
+
+    if (!user) {
+      user = db.createUser({
+        telegramId: '123456789',
+        username: 'testuser',
+        firstName: 'Test',
+        lastName: 'User',
+        balance: 10.00, // Give test user some balance
+      });
+    }
+
+    // Generate JWT token
+    const token = generateJWT(user.id, user.telegramId);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        telegramId: user.telegramId,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        balance: user.balance,
+      },
+    });
+  } catch (error) {
+    console.error('Test login error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Test login failed',
+    });
+  }
+});
+
 export default router;
 

@@ -9,10 +9,13 @@ function LoginScreen({ onLogin }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Auto-login if Telegram WebApp is available
+    // Auto-login if Telegram WebApp is available with valid initData
     const tg = window.Telegram?.WebApp;
     if (tg && tg.initData) {
+      console.log('Telegram WebApp detected, attempting auto-login');
       handleTelegramLogin(tg.initData);
+    } else {
+      console.log('Telegram WebApp not available or no initData');
     }
   }, []);
 
@@ -21,18 +24,44 @@ function LoginScreen({ onLogin }) {
     setError(null);
 
     try {
+      console.log('Attempting Telegram login with initData');
       const response = await axios.post(`${API_URL}/api/auth/login`, {
         initData,
       });
 
       if (response.data.success) {
+        console.log('Telegram login successful');
         onLogin(response.data.token, response.data.user);
       } else {
+        console.error('Telegram login failed:', response.data.error);
         setError(response.data.error || 'Login failed');
       }
     } catch (err) {
-      console.error('Login error:', err);
-      setError(err.response?.data?.error || 'Failed to login');
+      console.error('Telegram login error:', err);
+      setError(err.response?.data?.error || 'Failed to login with Telegram');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestLogin = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('Attempting test login');
+      const response = await axios.post(`${API_URL}/api/auth/test-login`);
+
+      if (response.data.success) {
+        console.log('Test login successful');
+        onLogin(response.data.token, response.data.user);
+      } else {
+        console.error('Test login failed:', response.data.error);
+        setError(response.data.error || 'Test login failed');
+      }
+    } catch (err) {
+      console.error('Test login error:', err);
+      setError(err.response?.data?.error || 'Test login failed');
     } finally {
       setLoading(false);
     }
@@ -43,7 +72,8 @@ function LoginScreen({ onLogin }) {
     if (tg && tg.initData) {
       handleTelegramLogin(tg.initData);
     } else {
-      setError('Telegram WebApp not available');
+      console.warn('Telegram WebApp not available');
+      setError('Telegram WebApp not available. Use Test Login instead.');
     }
   };
 
@@ -83,6 +113,18 @@ function LoginScreen({ onLogin }) {
           disabled={loading}
         >
           {loading ? 'Logging in...' : 'Login with Telegram'}
+        </button>
+
+        <button
+          className="login-button"
+          onClick={handleTestLogin}
+          disabled={loading}
+          style={{
+            marginTop: '12px',
+            backgroundColor: '#10B981',
+          }}
+        >
+          {loading ? 'Testing...' : 'Test Login (Development)'}
         </button>
 
         <p className="info-text">
