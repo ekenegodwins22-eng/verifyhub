@@ -8,7 +8,7 @@ A complete, production-ready Telegram Mini App that acts as a white-labeled SMS 
 - **💰 Balance Management**: Users deposit money and manage their account balance
 - **📱 SMS Number Purchase**: Buy verification numbers for 10+ services and 150+ countries
 - **⚡ Auto-Polling**: Automatically receive SMS codes in real-time
-- **💳 Payment Integration**: Ready for NowPayments, Coinbase Commerce, or TON integration
+- **💳 Payment Integration**: Integrated with NowPayments for crypto deposits.
 - **🎨 Modern UI**: Beautiful, responsive design optimized for mobile
 - **🔒 White-Labeled**: Zero SMSPool branding—your brand only
 - **📊 Order History**: Track all purchases and SMS codes
@@ -44,7 +44,7 @@ SMSPool API + Payment Gateway (NowPayments) + IPN Callback
 - Telegram Bot Token (from [@BotFather](https://t.me/botfather))
 - SMSPool API Key (from [smspool.net](https://www.smspool.net))
 - Koyeb account (for backend deployment)
-- (Optional) Payment gateway API keys (NowPayments, Coinbase Commerce, etc.)
+- NowPayments API Key (for deposit integration)
 
 ## 🚀 Quick Start (Local Development)
 
@@ -122,7 +122,8 @@ verifyhub/
 │   ├── routes/
 │   │   ├── auth.js            # Authentication endpoints
 │   │   ├── services.js        # Services & pricing endpoints
-│   │   └── orders.js          # Order management endpoints
+│   │   ├── orders.js          # Order management endpoints
+│   │   └── deposit.js         # NowPayments deposit endpoints
 │   ├── utils/
 │   │   ├── telegram.js        # Telegram auth verification
 │   │   └── smspool.js         # SMSPool API integration
@@ -221,6 +222,8 @@ verifyhub/
 
 ## 🌐 Deployment on Koyeb
 
+**Your Deployment URL:** `https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app`
+
 ### Step 1: Prepare Your Repository
 
 Push your code to GitHub:
@@ -247,20 +250,22 @@ git push -u origin main
 - **Run Command**: `npm start`
 
 **Environment Variables:**
-Add all variables from your `.env` file:
+Add all variables from your `.env` file, using your specific Koyeb URL for the `VITE_*` and NowPayments variables:
 ```
 TELEGRAM_BOT_TOKEN=your_token
 SMSPOOL_API_KEY=your_key
 JWT_SECRET=your_secret
 NODE_ENV=production
-VITE_API_URL=https://your-koyeb-app.koyeb.app
-VITE_MINI_APP_URL=https://your-koyeb-app.koyeb.app
 
-# NowPayments Deposit Integration
+# Frontend/API URL (Use your Koyeb URL)
+VITE_API_URL=https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app
+VITE_MINI_APP_URL=https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app
+
+# NowPayments Deposit Integration (Use your Koyeb URL and API Key)
 NOWPAYMENTS_API_KEY=your_nowpayments_key
-IPN_CALLBACK_URL=https://your-koyeb-app.koyeb.app/api/deposit/ipn
-SUCCESS_URL=https://your-koyeb-app.koyeb.app
-CANCEL_URL=https://your-koyeb-app.koyeb.app
+IPN_CALLBACK_URL=https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app/api/deposit/ipn
+SUCCESS_URL=https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app
+CANCEL_URL=https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app
 ```
 
 **Ports:**
@@ -271,7 +276,7 @@ CANCEL_URL=https://your-koyeb-app.koyeb.app
 
 1. Click **Deploy**
 2. Wait for deployment to complete (~3-5 minutes)
-3. Your app will be available at `https://your-app-name.koyeb.app`
+3. Your app will be available at `https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app`
 
 ### Step 4: Update Telegram Bot
 
@@ -279,7 +284,7 @@ Update your Telegram bot's webhook to point to your Koyeb app:
 
 ```bash
 curl -X POST https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook \
-  -d "url=https://your-app-name.koyeb.app/webhook"
+  -d "url=https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app/webhook"
 ```
 
 ### Step 5: Configure Mini App URL
@@ -287,7 +292,7 @@ curl -X POST https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook \
 In Telegram BotFather:
 1. Select your bot
 2. Edit **Web App URL**
-3. Set it to: `https://your-app-name.koyeb.app`
+3. Set it to: `https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app`
 
 ## 🔑 Environment Variables
 
@@ -300,13 +305,13 @@ In Telegram BotFather:
 | `JWT_SECRET` | Secret key for JWT signing | `your_super_secret_key_here` |
 | `PORT` | Server port | `5000` |
 | `NODE_ENV` | Environment | `production` or `development` |
-| `VITE_API_URL` | Frontend API URL | `https://your-app.koyeb.app` |
+| `VITE_API_URL` | Frontend API URL | `https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app` |
 | `VITE_APP_TITLE` | Mini App title | `VerifyHub` |
-| `VITE_MINI_APP_URL` | Mini App URL | `https://your-app.koyeb.app` |
+| `VITE_MINI_APP_URL` | Mini App URL | `https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app` |
 | `NOWPAYMENTS_API_KEY` | NowPayments API Key | `your_nowpayments_key` |
-| `IPN_CALLBACK_URL` | NowPayments IPN URL (Crucial for balance update) | `https://your-app.koyeb.app/api/deposit/ipn` |
-| `SUCCESS_URL` | URL to redirect after successful payment | `https://your-app.koyeb.app` |
-| `CANCEL_URL` | URL to redirect after cancelled payment | `https://your-app.koyeb.app` |
+| `IPN_CALLBACK_URL` | NowPayments IPN URL (Crucial for balance update) | `https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app/api/deposit/ipn` |
+| `SUCCESS_URL` | URL to redirect after successful payment | `https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app` |
+| `CANCEL_URL` | URL to redirect after cancelled payment | `https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app` |
 
 ## 💳 Payment Gateway Integration
 
@@ -320,9 +325,9 @@ The integration is complete and ready to use. You only need to set the environme
 2.  Set the following environment variables in your Koyeb deployment:
     ```env
     NOWPAYMENTS_API_KEY=your_key
-    IPN_CALLBACK_URL=https://your-koyeb-app.koyeb.app/api/deposit/ipn
-    SUCCESS_URL=https://your-koyeb-app.koyeb.app
-    CANCEL_URL=https://your-koyeb-app.koyeb.app
+    IPN_CALLBACK_URL=https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app/api/deposit/ipn
+    SUCCESS_URL=https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app
+    CANCEL_URL=https://primary-ainsley-suhailtechlnf-cc1ffe95.koyeb.app
     ```
 3.  The app currently uses `usdt` as the payment currency, allowing the user to select the **Polygon** or **Solana** network on the NowPayments payment page.
 4.  **Note:** The IPN callback endpoint (`/api/deposit/ipn`) is implemented but does not include HMAC signature validation for simplicity. **For production use, you must implement HMAC validation** using your `NOWPAYMENTS_IPN_SECRET` to ensure security.
@@ -367,7 +372,7 @@ The integration is complete and ready to use. You only need to set the environme
 - Run `npm run db:push` to sync schema
 - Check database file permissions
 
-## 📈# Pricing Logic
+## 📈 Pricing Logic
 
 The app uses a simple fixed transaction fee:
 
@@ -430,4 +435,3 @@ MIT License - Feel free to use and modify for your projects.
 **Built with ❤️ for Telegram Mini Apps**
 
 Happy selling! 🎉
-
