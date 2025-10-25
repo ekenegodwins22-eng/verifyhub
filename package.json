@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server/index.js",
-    "build": "cd client && npm install && npm run build",
+    "build": "cd client && npm install && PATH=$(npm bin):$PATH npm run build",
     "start": "node server/index.js"
   },
   "keywords": [
