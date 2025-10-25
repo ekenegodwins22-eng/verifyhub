@@ -203,8 +203,8 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
                 <span className="price-small">${currentPrice.smsPoolPrice.toFixed(2)}</span>
               </div>
               <div className="price-row">
-                <span>Markup:</span>
-                <span className="price-small">{currentPrice.markup}x</span>
+                <span>Transaction Fee:</span>
+                <span className="price-small">${currentPrice.transactionFee.toFixed(2)}</span>
               </div>
               <div className="price-row" style={{ borderTop: '1px solid #ddd', paddingTop: '10px', marginTop: '10px' }}>
                 <span>Your Price:</span>
@@ -240,7 +240,7 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
           <ol>
             <li>Search and select the service you want to verify</li>
             <li>Choose your preferred country</li>
-            <li>Review the price (SMSPool price × markup)</li>
+            <li>Review the price (SMSPool price + Transaction Fee)</li>
             <li>Click "Buy Now" to get a phone number</li>
             <li>Use the number to sign up/verify</li>
             <li>SMS code will appear automatically in your Orders</li>

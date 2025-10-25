@@ -7,19 +7,13 @@ const router = express.Router();
 const SMSPOOL_API_KEY = process.env.SMSPOOL_API_KEY;
 const SMSPOOL_API_URL = 'https://api.smspool.net';
 
-// Pricing markup rules
-const getPriceMarkup = (smsPoolPrice) => {
+// Fixed transaction fee
+const TRANSACTION_FEE = 1.00;
+
+// Function to calculate user price (raw SMSPool price + fixed fee)
+const calculateUserPrice = (smsPoolPrice) => {
   const price = parseFloat(smsPoolPrice);
-
-  if (price >= 0.10 && price <= 1.00) {
-    return 5; // 5x markup
-  } else if (price >= 1.01 && price <= 4.99) {
-    return 2; // 2x markup
-  } else if (price >= 5.00) {
-    return 1.5; // 1.5x markup
-  }
-
-  return 2; // Default to 2x
+  return parseFloat((price + TRANSACTION_FEE).toFixed(2));
 };
 
 // Sample services for fallback
@@ -91,13 +85,12 @@ const getSampleServices = () => {
     countries.forEach((country) => {
       const key = `${service.id}-${country.code}`;
       const apiPrice = samplePrices[key] || 0.10;
-      const markup = getPriceMarkup(apiPrice);
-      const userPrice = apiPrice * markup;
+      const userPrice = calculateUserPrice(apiPrice);
       
       pricing[service.id][country.code] = {
         smsPoolPrice: parseFloat(apiPrice.toFixed(4)),
-        markup: markup,
-        userPrice: parseFloat(userPrice.toFixed(2)),
+        transactionFee: TRANSACTION_FEE,
+        userPrice: userPrice,
       };
     });
   });
@@ -110,7 +103,7 @@ const getSampleServices = () => {
 };
 
 // Cache for services (refresh every 1 hour)
-let servicesCache = null;
+export let servicesCache = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
@@ -175,13 +168,12 @@ const fetchServicesFromSMSPool = async () => {
         }
 
         // 3. Calculate and Store Pricing
-        const markup = getPriceMarkup(numPrice);
-        const userPrice = numPrice * markup;
+        const userPrice = calculateUserPrice(numPrice);
 
         pricingData[serviceId][countryCode] = {
           smsPoolPrice: parseFloat(numPrice.toFixed(4)),
-          markup: markup,
-          userPrice: parseFloat(userPrice.toFixed(2)),
+          transactionFee: TRANSACTION_FEE,
+          userPrice: userPrice,
         };
       });
     } else {

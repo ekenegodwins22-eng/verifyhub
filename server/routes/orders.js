@@ -1,5 +1,6 @@
 import express from 'express';
-import { requestNumber, getSMS, calculateUserPrice, banNumber } from '../utils/smspool.js';
+import { requestNumber, getSMS, banNumber } from '../utils/smspool.js';
+import { servicesCache } from './services.js'; // Import servicesCache from services route
 import db from '../db/index.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -31,26 +32,18 @@ router.post('/buy', authMiddleware, async (req, res) => {
       });
     }
 
-    // Sample pricing (in production, fetch from SMSPool)
-    const samplePrices = {
-      'telegram-US': 0.10,
-      'telegram-UK': 0.12,
-      'telegram-CA': 0.11,
-      'google-US': 0.15,
-      'google-UK': 0.17,
-      'whatsapp-US': 0.20,
-      'facebook-US': 0.18,
-      'twitter-US': 0.25,
-      'discord-US': 0.22,
-      'instagram-US': 0.19,
-      'tiktok-US': 0.30,
-      'amazon-US': 0.35,
-      'ebay-US': 0.28,
-    };
+        // Get pricing from cache
+    const pricing = servicesCache?.pricing?.[service.toLowerCase()]?.[country.toUpperCase()];
 
-    const key = `${service.toLowerCase()}-${country.toUpperCase()}`;
-    const apiPrice = samplePrices[key] || 0.10;
-    const userPrice = calculateUserPrice(apiPrice);
+    if (!pricing) {
+      return res.status(404).json({
+        success: false,
+        error: 'Service or country pricing not found in cache. Try refreshing services.',
+      });
+    }
+
+    const apiPrice = pricing.smsPoolPrice;
+    const userPrice = pricing.userPrice;
 
     // Check if user has enough balance
     if (user.balance < userPrice) {
