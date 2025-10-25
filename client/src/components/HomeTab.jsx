@@ -127,15 +127,10 @@ function HomeTab({ user, token, onBalanceUpdate }) {
 
               <div className="payment-methods">
                 <h4>Payment Methods</h4>
-                <button className="payment-method" onClick={handleDeposit}>
+                <button className="payment-method" onClick={handleDeposit} disabled={depositLoading}>
                   <span>USDT</span> Polygon/Solana (via NowPayments)
                 </button>
-                <button className="payment-method" disabled>
-                  <span>₿</span> Bitcoin (Coming Soon)
-                </button>
-                <button className="payment-method" disabled>
-                  <span>Ξ</span> Ethereum (Coming Soon)
-                </button>
+                
               </div>
             </div>
 
@@ -146,13 +141,7 @@ function HomeTab({ user, token, onBalanceUpdate }) {
               >
                 Cancel
               </button>
-              <button
-                className="btn-primary"
-                onClick={handleDeposit}
-                disabled={depositLoading}
-              >
-                {depositLoading ? 'Processing...' : 'Continue to Payment'}
-              </button>
+              
             </div>
           </div>
         </div>
