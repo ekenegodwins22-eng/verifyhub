@@ -1,3 +1,4 @@
+
 import express from 'express';
 import axios from 'axios';
 import { authMiddleware } from '../middleware/auth.js';
@@ -9,7 +10,7 @@ const SMSPOOL_API_URL = 'https://api.smspool.net';
 // Pricing markup rules
 const getPriceMarkup = (smsPoolPrice) => {
   const price = parseFloat(smsPoolPrice);
-  
+
   if (price >= 0.10 && price <= 1.00) {
     return 5; // 5x markup
   } else if (price >= 1.01 && price <= 4.99) {
@@ -17,7 +18,7 @@ const getPriceMarkup = (smsPoolPrice) => {
   } else if (price >= 5.00) {
     return 1.5; // 1.5x markup
   }
-  
+
   return 2; // Default to 2x
 };
 
@@ -123,8 +124,8 @@ const fetchServicesFromSMSPool = async () => {
       return getSampleServices();
     }
 
-    // Fetch prices endpoint which includes all services and countries
-    const response = await axios.get(`${SMSPOOL_API_URL}/request/prices`, {
+    // Fetch services endpoint which includes all services and countries
+    const response = await axios.get(`${SMSPOOL_API_URL}/request/services`, {
       params: {
         key: SMSPOOL_API_KEY,
       },
@@ -143,45 +144,50 @@ const fetchServicesFromSMSPool = async () => {
     const countriesMap = {};
     const pricingData = {};
 
-    // SMSPool returns data as: { "service_name": { "country_code": price, ... }, ... }
-    Object.entries(response.data).forEach(([serviceName, countries]) => {
-      if (typeof countries === 'object' && countries !== null) {
-        const serviceId = serviceName.toLowerCase().replace(/\s+/g, '_');
+    // SMSPool returns data as an array of objects: [ { service: '...', country: '...', price: '...' }, ... ]
+    if (Array.isArray(response.data)) {
+      response.data.forEach((item) => {
+        const { service, country, price } = item;
+        const numPrice = parseFloat(price);
         
+        if (!service || !country || isNaN(numPrice) || numPrice <= 0) {
+          return; // Skip invalid entries
+        }
+
+        const serviceId = service.toLowerCase().replace(/\s+/g, '_');
+        const countryCode = country.toUpperCase();
+
+        // 1. Build Services Map
         if (!servicesMap[serviceId]) {
           servicesMap[serviceId] = {
             id: serviceId,
-            name: serviceName,
+            name: service,
           };
           pricingData[serviceId] = {};
         }
 
-        Object.entries(countries).forEach(([countryCode, price]) => {
-          const numPrice = parseFloat(price);
-          
-          if (!isNaN(numPrice) && numPrice > 0) {
-            // Add country to map
-            if (!countriesMap[countryCode]) {
-              countriesMap[countryCode] = {
-                code: countryCode,
-                name: countryCode,
-              };
-            }
+        // 2. Build Countries Map
+        if (!countriesMap[countryCode]) {
+          countriesMap[countryCode] = {
+            code: countryCode,
+            name: countryCode, // SMSPool only provides code, so use code as name for now
+          };
+        }
 
-            // Calculate markup
-            const markup = getPriceMarkup(numPrice);
-            const userPrice = numPrice * markup;
+        // 3. Calculate and Store Pricing
+        const markup = getPriceMarkup(numPrice);
+        const userPrice = numPrice * markup;
 
-            // Store pricing
-            pricingData[serviceId][countryCode] = {
-              smsPoolPrice: parseFloat(numPrice.toFixed(4)),
-              markup: markup,
-              userPrice: parseFloat(userPrice.toFixed(2)),
-            };
-          }
-        });
-      }
-    });
+        pricingData[serviceId][countryCode] = {
+          smsPoolPrice: parseFloat(numPrice.toFixed(4)),
+          markup: markup,
+          userPrice: parseFloat(userPrice.toFixed(2)),
+        };
+      });
+    } else {
+      console.warn('⚠️ SMSPool API response is not an array, using sample services');
+      return getSampleServices();
+    }
 
     const services = Object.values(servicesMap).sort((a, b) => a.name.localeCompare(b.name));
     const countries = Object.values(countriesMap).sort((a, b) => a.code.localeCompare(b.code));
