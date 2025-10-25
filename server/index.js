@@ -12,6 +12,7 @@ dotenv.config();
 import authRoutes from './routes/auth.js';
 import servicesRoutes from './routes/services.js';
 import ordersRoutes from './routes/orders.js';
+import depositRoutes from './routes/deposit.js';
 import { authMiddleware } from './middleware/auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -111,6 +112,7 @@ Click the button below to open the app and start buying SMS numbers!
 app.use('/api/auth', authRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/deposit', depositRoutes);
 
 // Serve static files from client build (if available)
 const clientBuildPath = path.join(__dirname, '../client/dist');

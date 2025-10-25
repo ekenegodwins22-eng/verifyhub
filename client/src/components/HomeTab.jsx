@@ -9,8 +9,10 @@ function HomeTab({ user, token, onBalanceUpdate }) {
   const [depositError, setDepositError] = useState(null);
 
   const handleDeposit = async () => {
-    if (!depositAmount || parseFloat(depositAmount) <= 0) {
-      setDepositError('Please enter a valid amount');
+    const amount = parseFloat(depositAmount);
+
+    if (!amount || amount < 1) {
+      setDepositError('Minimum deposit amount is $1.00');
       return;
     }
 
@@ -18,13 +20,29 @@ function HomeTab({ user, token, onBalanceUpdate }) {
     setDepositError(null);
 
     try {
-      // In production, integrate with payment gateway (NowPayments, etc.)
-      // For now, we'll show a placeholder
-      alert('Payment gateway integration coming soon!\n\nIn production, this would redirect to NowPayments or similar.');
-      setShowDepositModal(false);
-      setDepositAmount('');
+      const API_URL = (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+        ? window.location.origin 
+        : (import.meta.env.VITE_API_URL || 'http://localhost:5000'));
+
+      const response = await axios.post(
+        `${API_URL}/api/deposit/create`,
+        { amount: amount },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success && response.data.paymentUrl) {
+        // Redirect user to NowPayments for payment
+        window.location.href = response.data.paymentUrl;
+      } else {
+        setDepositError(response.data.error || 'Failed to initiate payment.');
+      }
     } catch (error) {
-      setDepositError('Deposit failed');
+      console.error('Deposit error:', error.response?.data || error.message);
+      setDepositError(error.response?.data?.error || 'Deposit failed. Check console for details.');
     } finally {
       setDepositLoading(false);
     }
@@ -109,17 +127,17 @@ function HomeTab({ user, token, onBalanceUpdate }) {
 
               <div className="payment-methods">
                 <h4>Payment Methods</h4>
-                <button className="payment-method">
-                  <span>💳</span> Credit Card
+                <button className="payment-method" disabled>
+                  <span>USDT</span> Polygon (via NowPayments)
                 </button>
-                <button className="payment-method">
+                <button className="payment-method" disabled>
+                  <span>USDT</span> Solana (via NowPayments)
+                </button>
+                <button className="payment-method" disabled>
                   <span>₿</span> Bitcoin
                 </button>
-                <button className="payment-method">
+                <button className="payment-method" disabled>
                   <span>Ξ</span> Ethereum
-                </button>
-                <button className="payment-method">
-                  <span>💎</span> TON (Telegram)
                 </button>
               </div>
             </div>
