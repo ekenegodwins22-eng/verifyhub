@@ -12,7 +12,7 @@ A complete, production-ready Telegram Mini App that acts as a white-labeled SMS 
 - **🎨 Modern UI**: Beautiful, responsive design optimized for mobile
 - **🔒 White-Labeled**: Zero SMSPool branding—your brand only
 - **📊 Order History**: Track all purchases and SMS codes
-- **⚙️ Dynamic Pricing**: Configurable markup (5x for $0.1-$1, 2x for $1.01-$4.99, 1.5x for $5+)
+- **⚙️ Simple Pricing**: Raw SMSPool price + fixed **$1.00 transaction fee** on all orders.
 
 ## 🏗️ Architecture
 
@@ -35,7 +35,7 @@ Mini App Frontend (React)
     ↓
 Backend API (Express)
     ↓
-SMSPool API + Payment Gateway
+SMSPool API + Payment Gateway (NowPayments) + IPN Callback
 ```
 
 ## 📋 Prerequisites
@@ -170,6 +170,8 @@ verifyhub/
 | Method | Endpoint | Description |
 |:---|:---|:---|
 | `POST` | `/api/orders/buy` | Buy a new SMS number |
+| `POST` | `/api/deposit/create` | Initiate a crypto deposit via NowPayments |
+| `POST` | `/api/deposit/ipn` | NowPayments IPN callback for payment confirmation |
 | `GET` | `/api/orders` | Get user's orders |
 | `GET` | `/api/orders/:orderId` | Get specific order |
 | `GET` | `/api/orders/:orderId/sms` | Check for SMS code (auto-poll) |
@@ -253,6 +255,12 @@ JWT_SECRET=your_secret
 NODE_ENV=production
 VITE_API_URL=https://your-koyeb-app.koyeb.app
 VITE_MINI_APP_URL=https://your-koyeb-app.koyeb.app
+
+# NowPayments Deposit Integration
+NOWPAYMENTS_API_KEY=your_nowpayments_key
+IPN_CALLBACK_URL=https://your-koyeb-app.koyeb.app/api/deposit/ipn
+SUCCESS_URL=https://your-koyeb-app.koyeb.app
+CANCEL_URL=https://your-koyeb-app.koyeb.app
 ```
 
 **Ports:**
@@ -295,22 +303,29 @@ In Telegram BotFather:
 | `VITE_API_URL` | Frontend API URL | `https://your-app.koyeb.app` |
 | `VITE_APP_TITLE` | Mini App title | `VerifyHub` |
 | `VITE_MINI_APP_URL` | Mini App URL | `https://your-app.koyeb.app` |
+| `NOWPAYMENTS_API_KEY` | NowPayments API Key | `your_nowpayments_key` |
+| `IPN_CALLBACK_URL` | NowPayments IPN URL (Crucial for balance update) | `https://your-app.koyeb.app/api/deposit/ipn` |
+| `SUCCESS_URL` | URL to redirect after successful payment | `https://your-app.koyeb.app` |
+| `CANCEL_URL` | URL to redirect after cancelled payment | `https://your-app.koyeb.app` |
 
 ## 💳 Payment Gateway Integration
 
 The app is ready for payment integration. To add deposits:
 
-### Option 1: NowPayments
+### Option 1: NowPayments (Integrated)
 
-1. Sign up at [nowpayments.io](https://nowpayments.io)
-2. Get your API key
-3. Add to `.env`:
-```env
-NOWPAYMENTS_API_KEY=your_key
-NOWPAYMENTS_IPN_SECRET=your_secret
-```
+The integration is complete and ready to use. You only need to set the environment variables:
 
-4. Implement deposit endpoint in `server/routes/orders.js`
+1.  Sign up at [nowpayments.io](https://nowpayments.io) and get your API key.
+2.  Set the following environment variables in your Koyeb deployment:
+    ```env
+    NOWPAYMENTS_API_KEY=your_key
+    IPN_CALLBACK_URL=https://your-koyeb-app.koyeb.app/api/deposit/ipn
+    SUCCESS_URL=https://your-koyeb-app.koyeb.app
+    CANCEL_URL=https://your-koyeb-app.koyeb.app
+    ```
+3.  The app currently uses `usdt` as the payment currency, allowing the user to select the **Polygon** or **Solana** network on the NowPayments payment page.
+4.  **Note:** The IPN callback endpoint (`/api/deposit/ipn`) is implemented but does not include HMAC signature validation for simplicity. **For production use, you must implement HMAC validation** using your `NOWPAYMENTS_IPN_SECRET` to ensure security.
 
 ### Option 2: Coinbase Commerce
 
@@ -352,27 +367,22 @@ NOWPAYMENTS_IPN_SECRET=your_secret
 - Run `npm run db:push` to sync schema
 - Check database file permissions
 
-## 📈 Pricing Markup Logic
+## 📈# Pricing Logic
 
-The app automatically applies markups based on SMSPool's wholesale prices:
+The app uses a simple fixed transaction fee:
 
-| SMSPool Price | Markup | Example |
-|:---|:---|:---|
-| $0.10 - $1.00 | × 5 | $0.10 → $0.50 |
-| $1.01 - $4.99 | × 2 | $2.00 → $4.00 |
-| $5.00+ | × 1.5 | $10.00 → $15.00 |
+*   **User Price** = Raw SMSPool Price + **$1.00 Fixed Transaction Fee**
 
-Customize in `server/utils/smspool.js`:
+This logic is configured in `server/routes/services.js`:
 
 ```javascript
-export function calculateUserPrice(apiPrice) {
-  if (apiPrice >= 0.1 && apiPrice <= 1.0) {
-    return parseFloat((apiPrice * 5).toFixed(2)); // Change multiplier here
-  }
-  // ... rest of logic
-}
-```
+const TRANSACTION_FEE = 1.00;
 
+const calculateUserPrice = (smsPoolPrice) => {
+  const price = parseFloat(smsPoolPrice);
+  return parseFloat((price + TRANSACTION_FEE).toFixed(2));
+};
+```
 ## 🎨 Customization
 
 ### Change App Name
@@ -393,7 +403,7 @@ Edit CSS variables in `client/src/index.css`:
 ```
 
 ### Add More Services
-Edit `server/routes/services.js` and add to the services array.
+The app now dynamically fetches all available services and prices from the SMSPool API. No manual updates are needed.
 
 ## 📞 Support
 
