@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server/index.js",
-    "build": "echo 'Build complete - using pre-built client'",
+    "build": "cd client && npm install && npm run build",
     "start": "node server/index.js"
   },
   "keywords": [
