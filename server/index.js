@@ -24,7 +24,15 @@ const MINI_APP_URL = process.env.MINI_APP_URL || 'https://your-app-url.koyeb.app
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// Middleware for all routes except IPN
+app.use(express.json({
+  verify: (req, res, buf) => {
+    // Save raw body for IPN validation
+    if (req.originalUrl.includes('/api/deposit/ipn')) {
+      req.rawBody = buf;
+    }
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint

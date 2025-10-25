@@ -1,10 +1,12 @@
 import express from 'express';
 import axios from 'axios';
+import crypto from 'crypto';
 import { authMiddleware } from '../middleware/auth.js';
 import db from '../db/index.js';
 
 const router = express.Router();
 const NOWPAYMENTS_API_KEY = process.env.NOWPAYMENTS_API_KEY;
+const NOWPAYMENTS_IPN_SECRET = process.env.NOWPAYMENTS_IPN_SECRET; // Added IPN Secret
 const NOWPAYMENTS_API_URL = 'https://api.nowpayments.io/v1';
 const IPN_CALLBACK_URL = process.env.IPN_CALLBACK_URL;
 const SUCCESS_URL = process.env.SUCCESS_URL || 'https://your-app-url.koyeb.app';
@@ -108,33 +110,74 @@ router.post('/create', authMiddleware, async (req, res) => {
  * Instant Payment Notification (IPN) endpoint for NowPayments to call
  * NOTE: This is a simplified mock. A real IPN endpoint requires HMAC validation.
  */
-router.post('/ipn', async (req, res) => {
-    // In a real application, you would:
-    // 1. Validate the HMAC signature in the header (x-nowpayments-sig)
-    // 2. Check the payment_status (e.g., 'finished')
-    // 3. Find the corresponding pending transaction in your DB using order_id or payment_id
-    // 4. Update the user's balance and mark the transaction as 'completed'
+// Middleware to validate HMAC signature
+const validateIpn = (req, res, next) => {
+    if (!NOWPAYMENTS_IPN_SECRET) {
+        console.error('NOWPAYMENTS_IPN_SECRET is not set. Skipping IPN validation.');
+        return next(); // Proceed without validation if secret is missing (DEV ONLY)
+    }
 
+    const signature = req.get('x-nowpayments-sig');
+    if (!signature) {
+        console.error('IPN validation failed: x-nowpayments-sig header missing.');
+        return res.status(403).send('IPN validation failed: Signature missing');
+    }
+
+    // NowPayments IPN sends the body as a JSON string, which Express converts to an object.
+    // We need the raw body for HMAC validation. This requires a small change in server/index.js
+    // to get the raw body, but for now, we'll stringify the parsed body as a temporary measure.
+    // Use raw body buffer for true HMAC security.
+    const body = req.rawBody || JSON.stringify(req.body);
+    
+    const hash = crypto
+        .createHmac('sha512', NOWPAYMENTS_IPN_SECRET)
+        .update(body)
+        .digest('hex');
+
+    if (hash !== signature) {
+        console.error('IPN validation failed: Signature mismatch. Received:', signature, 'Expected:', hash);
+        return res.status(403).send('IPN validation failed: Signature mismatch');
+    }
+
+    console.log('IPN validation successful.');
+    next();
+};
+
+/**
+ * POST /api/deposit/ipn
+ * Instant Payment Notification (IPN) endpoint for NowPayments to call
+ */
+router.post('/ipn', validateIpn, async (req, res) => {
     const ipnData = req.body;
     console.log('Received IPN:', ipnData);
 
+    // 1. Check payment status
     if (ipnData.payment_status === 'finished') {
         const paymentId = ipnData.payment_id;
         const priceAmount = parseFloat(ipnData.price_amount); // USD amount
 
-        // Mock DB update for demonstration
+        // 2. Find the corresponding pending transaction in your DB
         const transaction = db.database.transactions.find(t => t.externalId === paymentId && t.status === 'pending');
+        
         if (transaction) {
             const userId = transaction.userId;
             const user = db.database.users.find(u => u.id === userId);
 
+            // 3. Update the user's balance and mark the transaction as 'completed'
             if (user) {
                 const newBalance = user.balance + priceAmount;
                 db.updateUser(userId, { balance: newBalance });
                 db.updateTransaction(transaction.id, { status: 'completed', amount: priceAmount });
                 console.log(`User ${userId} balance updated: $${newBalance.toFixed(2)}`);
+            } else {
+                console.error(`IPN Error: User not found for transaction ${paymentId}`);
             }
+        } else {
+            console.error(`IPN Error: Pending transaction not found or already processed for ${paymentId}`);
         }
+    } else if (ipnData.payment_status === 'failed' || ipnData.payment_status === 'expired') {
+        // Handle failed/expired payments (e.g., mark transaction as failed)
+        console.log(`IPN: Payment ${ipnData.payment_id} status is ${ipnData.payment_status}`);
     }
 
     // Always return 200 OK to NowPayments to acknowledge receipt

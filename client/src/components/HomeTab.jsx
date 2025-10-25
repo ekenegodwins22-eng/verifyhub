@@ -127,17 +127,14 @@ function HomeTab({ user, token, onBalanceUpdate }) {
 
               <div className="payment-methods">
                 <h4>Payment Methods</h4>
-                <button className="payment-method" disabled>
-                  <span>USDT</span> Polygon (via NowPayments)
+                <button className="payment-method" onClick={handleDeposit}>
+                  <span>USDT</span> Polygon/Solana (via NowPayments)
                 </button>
                 <button className="payment-method" disabled>
-                  <span>USDT</span> Solana (via NowPayments)
+                  <span>₿</span> Bitcoin (Coming Soon)
                 </button>
                 <button className="payment-method" disabled>
-                  <span>₿</span> Bitcoin
-                </button>
-                <button className="payment-method" disabled>
-                  <span>Ξ</span> Ethereum
+                  <span>Ξ</span> Ethereum (Coming Soon)
                 </button>
               </div>
             </div>
