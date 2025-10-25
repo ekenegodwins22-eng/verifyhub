@@ -42,7 +42,6 @@ function App() {
         console.log('👤 User data:', tg.initDataUnsafe?.user);
       } else {
         console.warn('⚠️ Telegram WebApp not available');
-        setError('Please open this app from Telegram');
       }
     } catch (err) {
       console.error('❌ Telegram initialization error:', err);
@@ -115,18 +114,19 @@ function App() {
     );
   }
 
+  if (!isAuthenticated || !user || !token) {
+    return <LoginScreen onLogin={handleLogin} apiUrl={API_URL} />;
+  }
+
   return (
     <div className="app">
-      {isAuthenticated ? (
-        <DashboardScreen 
-          user={user} 
-          token={token} 
-          onLogout={handleLogout}
-          onBalanceUpdate={(newBalance) => setUser({ ...user, balance: newBalance })}
-        />
-      ) : (
-        <LoginScreen onLogin={handleLogin} />
-      )}
+      <DashboardScreen 
+        user={user} 
+        token={token} 
+        onLogout={handleLogout}
+        onBalanceUpdate={(newBalance) => setUser({ ...user, balance: newBalance })}
+        apiUrl={API_URL}
+      />
     </div>
   );
 }

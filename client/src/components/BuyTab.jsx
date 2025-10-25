@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/BuyTab.css';
 
-function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
+function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
   const [services, setServices] = useState([]);
   const [countries, setCountries] = useState([]);
   const [pricing, setPricing] = useState({});
@@ -13,10 +13,10 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated }) {
   const [buying, setBuying] = useState(false);
   const [searchService, setSearchService] = useState('');
 
-  // Get API URL
-  const API_URL = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+  // Use apiUrl from props
+  const API_URL = apiUrl || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
     ? window.location.origin 
-    : (import.meta.env.VITE_API_URL || 'http://localhost:5000');
+    : (import.meta.env.VITE_API_URL || 'http://localhost:5000'));
 
   useEffect(() => {
     console.log('BuyTab: Fetching services from', API_URL);

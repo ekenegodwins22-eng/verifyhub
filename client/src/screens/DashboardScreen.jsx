@@ -4,7 +4,7 @@ import BuyTab from '../components/BuyTab';
 import OrdersTab from '../components/OrdersTab';
 import '../styles/DashboardScreen.css';
 
-function DashboardScreen({ user, token, onLogout, onBalanceUpdate }) {
+function DashboardScreen({ user, token, onLogout, onBalanceUpdate, apiUrl }) {
   const [activeTab, setActiveTab] = useState('home');
 
   return (
@@ -49,6 +49,7 @@ function DashboardScreen({ user, token, onLogout, onBalanceUpdate }) {
               user={user} 
               token={token}
               onBalanceUpdate={onBalanceUpdate}
+              apiUrl={apiUrl}
             />
           )}
           {activeTab === 'buy' && (
@@ -57,12 +58,14 @@ function DashboardScreen({ user, token, onLogout, onBalanceUpdate }) {
               token={token}
               onBalanceUpdate={onBalanceUpdate}
               onOrderCreated={() => setActiveTab('orders')}
+              apiUrl={apiUrl}
             />
           )}
           {activeTab === 'orders' && (
             <OrdersTab 
               user={user} 
               token={token}
+              apiUrl={apiUrl}
             />
           )}
         </div>
