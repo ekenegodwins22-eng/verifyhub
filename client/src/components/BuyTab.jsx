@@ -200,7 +200,7 @@ function BuyTab({ user, token, onBalanceUpdate, onOrderCreated, apiUrl }) {
             <div className="price-summary">
               <div className="price-row">
                 <span>SMSPool Price:</span>
-                <span className="price-small">${currentPrice.smsPoolPrice.toFixed(4)}</span>
+                <span className="price-small">${currentPrice.smsPoolPrice.toFixed(2)}</span>
               </div>
               <div className="price-row">
                 <span>Markup:</span>
